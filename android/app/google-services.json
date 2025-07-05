@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "633424467067",
+    "project_id": "ittakesnotes",
+    "storage_bucket": "ittakesnotes.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633424467067:android:af790400da5dd22d0a7ede",
+        "android_client_info": {
+          "package_name": "com.example.act3"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "633424467067-765e3ch0jv3qos1hkotag27cqqtndfej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEocFu8VLWRBkbrQ1ddxyd0iNqOSYCfME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "633424467067-765e3ch0jv3qos1hkotag27cqqtndfej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "633424467067-og6tfphvmhdn25srv8pa4cm9u5pbpsqh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.act3"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

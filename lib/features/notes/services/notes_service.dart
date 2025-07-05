@@ -96,11 +96,9 @@ class NotesService {
 
   Future<String> processWithAi(String noteId, String rawText) async {
     try {
-      // 1. Crear la solicitud de chat
       final request = CreateChatCompletionRequest(
-        model: ChatCompletionModel.modelId('gpt-4o-mini'), // Usar modelo actual
+        model: ChatCompletionModel.modelId('gpt-4o-mini'),
         messages: [
-          // Mensaje del sistema con instrucciones
           ChatCompletionMessage.system(
             content: '''
             Eres un asistente que organiza notas escolares. 
@@ -111,22 +109,18 @@ class NotesService {
             4. Mantener un tono académico
             ''',
           ),
-          // Mensaje del usuario con el texto a procesar
           ChatCompletionMessage.user(
             content: ChatCompletionUserMessageContent.string(rawText),
           ),
         ],
-        temperature: 0.2, // Para mayor precisión
-        maxTokens: 2000, // Ajustar según necesidad
+        temperature: 0.2,
+        maxTokens: 2000,
       );
 
-      // 2. Realizar la solicitud
       final response = await _client.createChatCompletion(request: request);
 
-      // 3. Obtener el texto organizado
       final organizedText = response.choices.first.message.content ?? '';
 
-      // 4. Actualizar Firestore
       await updateOrganizedText(noteId, organizedText);
 
       return organizedText;

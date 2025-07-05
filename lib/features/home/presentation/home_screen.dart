@@ -52,6 +52,79 @@ class HomeScreen extends StatelessWidget {
                     arguments: docs[i].id,
                   );
                 },
+                trailing: PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      final controller = TextEditingController(
+                        text: data['title'],
+                      );
+                      String? editedTitle = await showDialog<String>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Editar título'),
+                          content: TextField(
+                            controller: controller,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Nuevo título',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                final text = controller.text.trim();
+                                if (text.isNotEmpty) {
+                                  Navigator.pop(context, text);
+                                }
+                              },
+                              child: const Text('Guardar'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (editedTitle != null && editedTitle.isNotEmpty) {
+                        await NotesService().updateNoteTitle(
+                          docs[i].id,
+                          editedTitle,
+                        );
+                      }
+                    } else if (value == 'delete') {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Eliminar apunte'),
+                          content: const Text(
+                            '¿Estás seguro de que deseas eliminar este apunte?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Eliminar'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        await NotesService().deleteNote(docs[i].id);
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
+                  ],
+                ),
               );
             },
           );
@@ -61,8 +134,43 @@ class HomeScreen extends StatelessWidget {
         tooltip: 'Crear nuevo apunte',
         child: const Icon(Icons.add),
         onPressed: () async {
-          final noteId = await NotesService().createNote('Nuevo Apunte');
-          Navigator.pushNamed(context, '/noteDetail', arguments: noteId);
+          String? newTitle = await showDialog<String>(
+            context: context,
+            builder: (context) {
+              final controller = TextEditingController();
+              return AlertDialog(
+                title: const Text('Nuevo Apunte'),
+                content: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Título del apunte',
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context), // Cancelar
+                    child: const Text('Cancelar'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final text = controller.text.trim();
+                      if (text.isNotEmpty) {
+                        Navigator.pop(context, text);
+                      } else {
+                        Navigator.pop(context, 'Nuevo apunte');
+                      }
+                    },
+                    child: const Text('Crear'),
+                  ),
+                ],
+              );
+            },
+          );
+          if (newTitle != null && newTitle.isNotEmpty) {
+            final noteId = await NotesService().createNote(newTitle);
+            Navigator.pushNamed(context, '/noteDetail', arguments: noteId);
+          }
         },
       ),
     );

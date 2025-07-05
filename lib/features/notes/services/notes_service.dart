@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:openai_dart/openai_dart.dart';
 import '../../../env.dart';
+import 'package:reorderables/reorderables.dart';
 
 class NotesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -63,7 +64,7 @@ class NotesService {
         .collection('notes')
         .doc(noteId)
         .collection('images')
-        .add({'imageUrl': imageUrl, 'order': order, 'ocrText': ocrText});
+        .add({'imageUrl': imageUrl, 'order': order});
   }
 
   Future<void> updateRawText(String noteId, String rawText) async {
@@ -128,5 +129,25 @@ class NotesService {
       print('Error en processWithAi: $e');
       throw Exception('Error al procesar con IA: $e');
     }
+  }
+
+  Future<void> updateNoteTitle(String noteId, String newTitle) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notes')
+        .doc(noteId)
+        .update({'title': newTitle});
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notes')
+        .doc(noteId)
+        .delete();
   }
 }

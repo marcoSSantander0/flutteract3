@@ -25,6 +25,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   String _rawText = '';
   String _organizedText = '';
   bool _processingOcr = false, _processingAi = false;
+  String _noteTitle = "";
 
   Future _pickImages() async {
     final source = await showDialog<ImageSource>(
@@ -161,6 +162,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
         .get();
 
     setState(() {
+      _noteTitle = note['title'] ?? '';
       _rawText = note['rawText'] ?? '';
       _organizedText = note['organizedText'] ?? '';
       _images = images.docs
@@ -244,15 +246,25 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   @override
   Widget build(BuildContext ctx) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de Apunte')),
+      backgroundColor: const Color(0xFF181A20),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF23242B),
+        elevation: 0,
+        title: Text(
+          _noteTitle.isNotEmpty ? _noteTitle : 'Detalle de Apunte',
+          style: const TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ReorderableWrap(
-              spacing: 8,
-              runSpacing: 8,
-              maxMainAxisCount: 2, // 2 columnas
+              spacing: 12,
+              runSpacing: 12,
+              maxMainAxisCount: 2,
               onReorder: (oldIndex, newIndex) async {
                 await _moveImage(oldIndex, newIndex);
               },
@@ -263,23 +275,26 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   key: ValueKey(url),
                   alignment: Alignment.topRight,
                   children: [
-                    Image.network(
-                      url,
-                      width: 150,
-                      height: 150,
-                      fit: BoxFit.cover,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        url,
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     // Número de orden en la esquina superior izquierda
                     Positioned(
-                      top: 4,
-                      left: 4,
+                      top: 6,
+                      left: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
+                          color: Colors.black87,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -297,8 +312,8 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                       child: IconButton(
                         icon: const Icon(
                           Icons.delete,
-                          color: Colors.red,
-                          size: 20,
+                          color: Colors.redAccent,
+                          size: 22,
                         ),
                         onPressed: () => _deleteImage(idx),
                       ),
@@ -307,40 +322,109 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 );
               }).toList(),
             ),
-            ElevatedButton(
-              onPressed: _pickImages,
-              child: const Text('Agregar imágenes'),
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                onPressed: _pickImages,
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                label: const Text('Agregar imágenes'),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white10,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
               onPressed: _processingOcr ? null : _runOcr,
-              child: Text(_processingOcr ? 'Procesando OCR...' : 'Run OCR'),
+              child: Text(
+                _processingOcr ? 'Procesando OCR...' : 'Extraer texto (OCR)',
+              ),
             ),
             if (_rawText.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              TextField(
-                maxLines: null,
-                decoration: const InputDecoration(labelText: 'Texto crudo'),
-                controller: TextEditingController(text: _rawText),
-                onChanged: (v) => _rawText = v,
+              const SizedBox(height: 16),
+              const Text(
+                'Texto crudo:',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF23242B),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: TextField(
+                  maxLines: null,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration.collapsed(hintText: ''),
+                  controller: TextEditingController(text: _rawText),
+                  onChanged: (v) => _rawText = v,
+                ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white10,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
               onPressed: !_rawText.isNotEmpty || _processingAi ? null : _runAi,
               child: Text(
-                _processingAi ? 'IA procesando...' : 'Procesar con IA',
+                _processingAi ? 'IA procesando...' : 'Organizar con IA',
               ),
             ),
             if (_organizedText.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              TextField(
-                maxLines: null,
-                decoration: const InputDecoration(
-                  labelText: 'Texto organizado',
+              const SizedBox(height: 16),
+              const Text(
+                'Texto organizado:',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
                 ),
-                controller: TextEditingController(text: _organizedText),
-                onChanged: (v) => _organizedText = v,
+              ),
+              const SizedBox(height: 6),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF23242B),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: TextField(
+                  maxLines: null,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration.collapsed(hintText: ''),
+                  controller: TextEditingController(text: _organizedText),
+                  onChanged: (v) => _organizedText = v,
+                ),
               ),
             ],
           ],

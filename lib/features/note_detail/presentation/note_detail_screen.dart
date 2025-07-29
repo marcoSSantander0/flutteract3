@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:reorderables/reorderables.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class NoteDetailScreen extends StatefulWidget {
   final String noteId;
@@ -109,10 +110,35 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     final organized = await _notesService.processWithAi(
       widget.noteId,
       _rawText,
+      prompt: '''
+You are an assistant that organizes school notes.
+Instructions:
+1. Use the same language as the input.
+2. Identify key concepts.
+3. Structure the content into sections with titles.
+4. Use markdown format.
+5. Maintain an academic tone.
+''',
     );
     await _notesService.updateOrganizedText(widget.noteId, organized);
     setState(() {
       _organizedText = organized;
+      _processingAi = false;
+    });
+  }
+
+  Future<void> _runOcrCorrection() async {
+    setState(() => _processingAi = true);
+    final corrected = await _notesService.processWithAi(
+      widget.noteId,
+      _rawText,
+      prompt: '''
+Correct the spelling and OCR recognition errors in the following extracted text. Keep the original language of the input.
+''',
+    );
+    await _notesService.updateRawText(widget.noteId, corrected);
+    setState(() {
+      _rawText = corrected;
       _processingAi = false;
     });
   }
@@ -342,22 +368,55 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white10,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white10,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed: _processingOcr ? null : _runOcr,
+                    child: Text(
+                      _processingOcr
+                          ? 'Procesando OCR...'
+                          : 'Extraer texto (OCR)',
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white10,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed:
+                        (_rawText.isNotEmpty &&
+                            !_processingAi &&
+                            !_processingOcr)
+                        ? _runOcrCorrection
+                        : null,
+                    child: Text(
+                      _processingAi ? 'IA procesando...' : 'Corregir con IA',
+                    ),
+                  ),
                 ),
-              ),
-              onPressed: _processingOcr ? null : _runOcr,
-              child: Text(
-                _processingOcr ? 'Procesando OCR...' : 'Extraer texto (OCR)',
-              ),
+              ],
             ),
             if (_rawText.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -418,12 +477,30 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.all(12),
-                child: TextField(
-                  maxLines: null,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration.collapsed(hintText: ''),
-                  controller: TextEditingController(text: _organizedText),
-                  onChanged: (v) => _organizedText = v,
+                child: MarkdownBody(
+                  data: _organizedText,
+                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                      .copyWith(
+                        p: const TextStyle(color: Colors.white),
+                        h1: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h2: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h3: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        strong: const TextStyle(color: Colors.white),
+                        blockquote: const TextStyle(
+                          color: Colors.white70,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        code: const TextStyle(color: Colors.amberAccent),
+                      ),
                 ),
               ),
             ],

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../notes/services/notes_service.dart';
 import '../../auth/services/auth_service.dart';
+import 'package:blur/blur.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -55,156 +56,121 @@ class HomeScreen extends StatelessWidget {
               ),
             );
           }
-          return ListView.builder(
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.1,
+            ),
             itemCount: docs.length,
             itemBuilder: (context, i) {
               final data = docs[i].data() as Map<String, dynamic>;
-              return Card(
-                color: const Color(0xFF23242B),
-                elevation: 0,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  title: Text(
-                    data['title'] ?? 'Sin título',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
+              final noteId = docs[i].id;
+
+              return FutureBuilder<QuerySnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(uid)
+                    .collection('notes')
+                    .doc(noteId)
+                    .collection('images')
+                    .orderBy('order')
+                    .limit(1)
+                    .get(),
+                builder: (context, imgSnapshot) {
+                  String? imageUrl;
+                  if (imgSnapshot.hasData &&
+                      imgSnapshot.data!.docs.isNotEmpty) {
+                    imageUrl =
+                        imgSnapshot.data!.docs.first['imageUrl'] as String?;
+                  }
+
+                  Widget cardContent = Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  subtitle: Text(
-                    data['createdAt']?.toDate().toString() ?? '',
-                    style: const TextStyle(color: Colors.white38, fontSize: 13),
-                  ),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/noteDetail',
-                      arguments: docs[i].id,
+                    child: Center(
+                      child: Text(
+                        data['title'] ?? 'Sin título',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          shadows: [
+                            Shadow(color: Colors.black54, blurRadius: 8),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+
+                  if (imageUrl != null && imageUrl.isNotEmpty) {
+                    cardContent = Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child:
+                              Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(color: Colors.black26),
+                              ).blurred(
+                                blur: 2,
+                                colorOpacity: 0.2,
+                                borderRadius: BorderRadius.circular(16),
+                                overlay: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                        ),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              data['title'] ?? 'Sin título',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                shadows: [
+                                  Shadow(color: Colors.black87, blurRadius: 12),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
-                  },
-                  trailing: PopupMenuButton<String>(
-                    color: const Color(0xFF23242B),
-                    icon: const Icon(Icons.more_vert, color: Colors.white54),
-                    onSelected: (value) async {
-                      if (value == 'edit') {
-                        final controller = TextEditingController(
-                          text: data['title'],
-                        );
-                        String? editedTitle = await showDialog<String>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: const Color(0xFF23242B),
-                            title: const Text(
-                              'Editar título',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            content: TextField(
-                              controller: controller,
-                              autofocus: true,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'Nuevo título',
-                                labelStyle: TextStyle(color: Colors.white54),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.white24),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.white54),
-                                ),
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text(
-                                  'Cancelar',
-                                  style: TextStyle(color: Colors.white54),
-                                ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white10,
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: () {
-                                  final text = controller.text.trim();
-                                  if (text.isNotEmpty) {
-                                    Navigator.pop(context, text);
-                                  }
-                                },
-                                child: const Text('Guardar'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (editedTitle != null && editedTitle.isNotEmpty) {
-                          await NotesService().updateNoteTitle(
-                            docs[i].id,
-                            editedTitle,
-                          );
-                        }
-                      } else if (value == 'delete') {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: const Color(0xFF23242B),
-                            title: const Text(
-                              'Eliminar apunte',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            content: const Text(
-                              '¿Estás seguro de que deseas eliminar este apunte?',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text(
-                                  'Cancelar',
-                                  style: TextStyle(color: Colors.white54),
-                                ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Eliminar'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          await NotesService().deleteNote(docs[i].id);
-                        }
-                      }
+                  }
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/noteDetail',
+                        arguments: noteId,
+                      );
                     },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Text(
-                          'Editar',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                    child: Card(
+                      color: Colors.transparent,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text(
-                          'Eliminar',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                      child: cardContent,
+                    ),
+                  );
+                },
               );
             },
           );

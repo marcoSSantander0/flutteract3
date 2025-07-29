@@ -5,7 +5,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:openai_dart/openai_dart.dart';
 import '../../../env.dart';
-import 'package:reorderables/reorderables.dart';
 
 class NotesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -95,21 +94,16 @@ class NotesService {
     return doc.data()!;
   }
 
-  Future<String> processWithAi(String noteId, String rawText) async {
+  Future<String> processWithAi(
+    String noteId,
+    String rawText, {
+    required String prompt,
+  }) async {
     try {
       final request = CreateChatCompletionRequest(
         model: ChatCompletionModel.modelId('gpt-4o-mini'),
         messages: [
-          ChatCompletionMessage.system(
-            content: '''
-            Eres un asistente que organiza notas escolares. 
-            Debes:
-            1. Identificar conceptos clave
-            2. Estructurar en apartados con títulos
-            3. Usar formato markdown
-            4. Mantener un tono académico
-            ''',
-          ),
+          ChatCompletionMessage.system(content: prompt),
           ChatCompletionMessage.user(
             content: ChatCompletionUserMessageContent.string(rawText),
           ),
@@ -122,11 +116,8 @@ class NotesService {
 
       final organizedText = response.choices.first.message.content ?? '';
 
-      await updateOrganizedText(noteId, organizedText);
-
       return organizedText;
     } catch (e) {
-      print('Error en processWithAi: $e');
       throw Exception('Error al procesar con IA: $e');
     }
   }
